@@ -1,0 +1,46 @@
+import requests
+import time
+
+# Konfigurasi
+URL = 'https://example.com'  # Ganti dengan URL yang ingin dimonitor
+CHECK_INTERVAL = 60  # dalam detik
+TELEGRAM_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+CHAT_ID = 'YOUR_CHAT_ID'
+
+last_status = None
+
+def send_telegram_message(message):
+    url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
+    data = {
+        'chat_id': CHAT_ID,
+        'text': message
+    }
+    try:
+        response = requests.post(url, data=data)
+        return response.status_code == 200
+    except Exception as e:
+        print("Gagal kirim Telegram:", e)
+        return False
+
+def check_website():
+    global last_status
+    try:
+        response = requests.get(URL, timeout=10)
+        if response.status_code == 200:
+            if last_status != 'UP':
+                send_telegram_message(f'✅ Website {URL} is UP.')
+                last_status = 'UP'
+        else:
+            if last_status != 'DOWN':
+                send_telegram_message(f'⚠️ Website {URL} might be DOWN. Status code: {response.status_code}')
+                last_status = 'DOWN'
+    except requests.RequestException:
+        if last_status != 'DOWN':
+            send_telegram_message(f'❌ Website {URL} is DOWN or unreachable.')
+            last_status = 'DOWN'
+
+# Looping terus-menerus
+print(f"Monitoring {URL} setiap {CHECK_INTERVAL} detik...")
+while True:
+    check_website()
+    time.sleep(CHECK_INTERVAL)
